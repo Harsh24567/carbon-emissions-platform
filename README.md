@@ -84,33 +84,108 @@ Design decisions:
 - **Business metrics** carry an `aggregation` (`sum` for flows such as tonnes produced, `avg` for stocks such as headcount) so intensity is computed correctly for both.
 - **Units.** All factors are stored as kgCO₂e per activity unit; the dashboard shows tCO₂e.
 
-## Run it
+## Getting started
 
-### Docker
+### Prerequisites
+
+| Need | Version | Used for |
+|---|---|---|
+| Git | any recent version | cloning the repository |
+| Docker Desktop | any recent version | Option A |
+| Python | 3.10 to 3.12 | Option B and the tests |
+
+No internet connection is needed to run the application after dependencies are installed.
+
+### Get the code
 
 ```bash
-docker build -t carbon-platform .
-docker run --rm -p 8000:8000 carbon-platform
+git clone https://github.com/Harsh24567/carbon-emissions-platform.git
+cd carbon-emissions-platform
 ```
 
-Open http://localhost:8000. API docs are at http://localhost:8000/docs. To keep data between runs, mount a volume: `docker run --rm -p 8000:8000 -v carbon-data:/app/data carbon-platform`.
+### Option A: run with Docker
 
-On first start an empty database is filled with sample emission factors (including expired versions for 2022 to 2025), monthly activity records for 2023 to the current month, and monthly business metrics. Set `SEED_DEMO_DATA=0` to start empty.
+1. Start Docker Desktop and wait until it reports that the engine is running. Check with `docker info`; it should print details without an error.
+2. Build the image. The final dot is required.
+   ```bash
+   docker build -t carbon-platform .
+   ```
+   The first build takes one to three minutes. It ends with a line naming `carbon-platform`.
+3. Start the container.
+   ```bash
+   docker run --rm -p 8000:8000 --name carbon carbon-platform
+   ```
+   Wait for `Application startup complete`. On the first start the app creates its database and fills it with sample data, which takes a few seconds.
+4. Open http://localhost:8000. You should see the Carbon Emissions Dashboard with four charts, a KPI card, two forms and a records table. The API documentation is at http://localhost:8000/docs.
+5. Stop the container with `Ctrl+C` in the same window.
 
-### Locally
+To keep your data between runs, add a volume: `docker run --rm -p 8000:8000 -v carbon-data:/app/data --name carbon carbon-platform`. Remove it later with `docker volume rm carbon-data`. If port 8000 is busy, map another host port, for example `-p 8001:8000`, and open that port.
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate        # Windows cmd; use: source .venv/bin/activate on Linux or macOS
-pip install -r requirements-dev.txt
-uvicorn app.main:app --reload
-```
+### Option B: run locally
 
-### Tests
+1. Create and activate a virtual environment.
 
+   Windows (cmd):
+   ```bat
+   python -m venv .venv
+   .venv\Scripts\activate.bat
+   ```
+   macOS or Linux:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+   The prompt now starts with `(.venv)`.
+2. Install the dependencies.
+   ```bash
+   python -m pip install --upgrade pip
+   pip install -r requirements-dev.txt
+   ```
+3. Start the server.
+   ```bash
+   uvicorn app.main:app --reload --port 8000
+   ```
+   The first start creates `data/carbon.db` and loads the sample data.
+4. Open http://localhost:8000 for the dashboard and http://localhost:8000/docs for the API documentation.
+5. Stop the server with `Ctrl+C`.
+
+To reset to fresh sample data, stop the server, delete `data/carbon.db`, and start it again.
+
+### Configuration
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DATABASE_URL` | `sqlite:///./data/carbon.db` | any SQLAlchemy URL, for example PostgreSQL |
+| `SEED_DEMO_DATA` | `1` | set to `0` to start with an empty database |
+
+### Try the main features
+
+1. Dashboard: choose a reporting year and switch the intensity metric between steel produced and employees.
+2. Scope 1 form: choose Scope 1 and Diesel, enter a quantity and a date, and save. The message names the factor version that was used.
+3. Historical accuracy: save a Diesel record dated 2023-06-15, then another dated 2025-06-15. The messages show different factor versions, because each record uses the factor valid on its own date.
+4. Business metric form: add Tons of Steel Produced for a month and watch the intensity card change.
+5. Override: click Override / audit on a record, enter a new value, a reason and your name, and apply it. The audit trail table shows the change. Revert to calculated adds a second audit row.
+6. Validation: in http://localhost:8000/docs, post a Scope 1 record with the activity `grid_electricity`. It is rejected with HTTP 422 because that is a Scope 2 activity.
+
+### Run the tests
+
+With the virtual environment active:
 ```bash
 pytest -q
 ```
+All tests should pass. They cover factor selection by date, validity boundaries, scope and unit checks, overrides with the audit trail, and the three analytics endpoints.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `docker build` says it requires 1 argument | the trailing `.` is missing |
+| `error during connect` or `cannot find the file specified` | Docker Desktop is not running; start it and wait for the engine |
+| `port is already allocated` or address already in use | use another port, for example `-p 8001:8000` or `--port 8001` |
+| `container name is already in use` | run `docker rm -f carbon` |
+| the page shows the wrong application | another server is using the port; stop it or use a different port, then reload with `Ctrl+F5` |
+| `python` is not recognised on Windows | use `py` instead, for example `py -m venv .venv` |
+| `pytest` is not found | activate the virtual environment first |
 
 ## API
 
