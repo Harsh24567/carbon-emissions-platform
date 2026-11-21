@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carbon Emissions Dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div>
+    <h1>Carbon Emissions Dashboard</h1>
+    <p class="muted">GHG Protocol · Scope 1 and Scope 2 · tCO₂e</p>
+  </div>
+  <div class="controls">
+    <label>Reporting year <select id="year"></select></label>
+    <label>Intensity metric <select id="metric"></select></label>
+  </div>
+</header>
+
+<div id="notice" class="notice hidden"></div>
+
+<section class="kpis">
+  <div class="card"><span>Total emissions</span><strong id="kTotal">–</strong><small id="kTotalSub"></small></div>
+  <div class="card"><span>Scope 1 (direct)</span><strong id="kS1">–</strong><small id="kS1Sub"></small></div>
+  <div class="card"><span>Scope 2 (purchased energy)</span><strong id="kS2">–</strong><small id="kS2Sub"></small></div>
+  <div class="card accent"><span>Emission intensity</span><strong id="kInt">–</strong><small id="kIntSub"></small></div>
+</section>
+
+<section class="grid2">
+  <div class="panel">
+    <h2>Year-over-year emissions <small id="yoyNote"></small></h2>
+    <div class="chartbox"><canvas id="yoyChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h2>Emission hotspots <small>share by source</small></h2>
+    <div class="chartbox"><canvas id="hotspotChart"></canvas></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Monthly emissions <small id="monthlyNote"></small></h2>
+  <div class="chartbox tall"><canvas id="monthlyChart"></canvas></div>
+</section>
+
+<section class="grid2">
+  <div class="panel">
+    <h2>Record activity data</h2>
+    <form id="recordForm">
+      <div class="row">
+        <label>Scope
+          <select id="rScope"><option value="1">Scope 1</option><option value="2">Scope 2</option></select>
+        </label>
+        <label>Activity <select id="rActivity" required></select></label>
+      </div>
+      <div class="row">
+        <label>Date <input type="date" id="rDate" required></label>
+        <label>Quantity <span id="rUnit" class="unit"></span><input type="number" id="rQty" step="any" min="0" required></label>
+      </div>
+      <div class="row">
+        <label>Location <input type="text" id="rLoc" maxlength="120" placeholder="Central Steel Plant"></label>
+        <label>Notes <input type="text" id="rNotes" maxlength="500"></label>
+      </div>
+      <button type="submit">Save record</button>
+      <p id="recordMsg" class="msg"></p>
+    </form>
+  </div>
+  <div class="panel">
+    <h2>Business metric</h2>
+    <form id="metricForm">
+      <div class="row">
+        <label>Date <input type="date" id="mDate" required></label>
+        <label>Metric name <input type="text" id="mName" list="metricNames" required placeholder="Tons of Steel Produced"></label>
+        <datalist id="metricNames"></datalist>
+      </div>
+      <div class="row">
+        <label>Value <input type="number" id="mValue" step="any" min="0" required></label>
+        <label>Unit <input type="text" id="mUnit" maxlength="32" placeholder="tonne"></label>
+        <label>Aggregation
+          <select id="mAgg"><option value="sum">Sum over period</option><option value="avg">Average over period</option></select>
+        </label>
+      </div>
+      <button type="submit">Save metric</button>
+      <p id="metricMsg" class="msg"></p>
+    </form>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Latest records <small>override and audit trail</small></h2>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>ID</th><th>Date</th><th>Scope</th><th>Activity</th><th class="num">Quantity</th><th class="num">Factor (v)</th><th class="num">Emissions (kgCO₂e)</th><th></th></tr></thead>
+      <tbody id="recordRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<dialog id="overrideDialog">
+  <form method="dialog" id="overrideForm">
+    <h3 id="ovTitle">Override emissions</h3>
+    <p class="muted" id="ovCurrent"></p>
+    <label>New value (kgCO₂e) <input type="number" id="ovValue" step="any" min="0" required></label>
+    <label>Reason <input type="text" id="ovReason" minlength="5" maxlength="500" required></label>
+    <label>Your name <input type="text" id="ovUser" minlength="2" maxlength="120" required></label>
+    <div class="row">
+      <button type="submit" id="ovSave">Apply override</button>
+      <button type="button" id="ovRevert" class="ghost">Revert to calculated</button>
+      <button type="button" id="ovCancel" class="ghost">Close</button>
+    </div>
+    <p id="ovMsg" class="msg"></p>
+    <h4>Audit trail</h4>
+    <table><thead><tr><th>When</th><th>Action</th><th class="num">Old</th><th class="num">New</th><th>By</th><th>Reason</th></tr></thead><tbody id="auditRows"></tbody></table>
+  </form>
+</dialog>
+
+<script src="/static/chart.umd.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
